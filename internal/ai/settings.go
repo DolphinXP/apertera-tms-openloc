@@ -64,11 +64,15 @@ func (s Settings) allowed(provider, model string) Settings {
 // outright, so the default must NOT be applied to them — it would 400 every
 // request. They're deterministic-ish by construction anyway; `reasoning_effort`
 // is the dial that replaces it.
-func (s Settings) applyOpenAI(body map[string]any, model string) {
-	if familyFromID(ProviderOpenAI, model) != familyOpenAIReasoning {
+//
+// OpenRouter takes the same body. It drops a parameter the routed model does not
+// support instead of failing the request, so the temperature default is safe
+// there even when the model behind the id is a reasoning model.
+func (s Settings) applyOpenAI(body map[string]any, provider, model string) {
+	if familyFromID(provider, model) != familyOpenAIReasoning {
 		body["temperature"] = 0
 	}
-	for k, v := range s.allowed(ProviderOpenAI, model) {
+	for k, v := range s.allowed(provider, model) {
 		body[k] = v
 	}
 }

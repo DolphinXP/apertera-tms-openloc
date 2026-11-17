@@ -25,6 +25,10 @@ const BASE_URL_HINT: Record<string, { placeholder: string; help: string }> = {
     placeholder: 'https://api.anthropic.com',
     help: 'Leave blank for Anthropic. Set it to use an Anthropic-compatible endpoint, such as a gateway or proxy.',
   },
+  openrouter: {
+    placeholder: 'https://openrouter.ai/api',
+    help: 'Leave blank for OpenRouter. Set it only for a gateway or proxy in front of OpenRouter.',
+  },
   deepl: {
     placeholder: 'https://api.deepl.com',
     // The Free/Pro host is derived from the key (Free keys end in ":fx"), so it

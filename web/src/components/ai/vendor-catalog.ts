@@ -41,6 +41,9 @@ export type CatalogVendor = {
 export const VENDOR_CATALOG: CatalogVendor[] = [
   { id: 'openai', name: 'OpenAI', group: 'qe', wired: true },
   { id: 'claude', name: 'Claude', group: 'qe', wired: true },
+  // OpenAI-compatible aggregator: one key, models from many vendors. Not a chat
+  // provider (see `drivesChat`) — it backs AI engines only.
+  { id: 'openrouter', name: 'OpenRouter', group: 'qe', wired: true },
 
   { id: 'deepl', name: 'DeepL', group: 'mt', wired: true },
   { id: 'google', name: 'Google Translate', group: 'mt', wired: true },

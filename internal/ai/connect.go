@@ -20,6 +20,10 @@ import (
 const (
 	ProviderOpenAI = "openai"
 	ProviderClaude = "claude"
+	// OpenRouter is an OpenAI-compatible aggregator: one key reaches models
+	// from many vendors, addressed as "<vendor>/<model>". It speaks the OpenAI
+	// chat/completions wire format, so it shares the OpenAI request path.
+	ProviderOpenRouter = "openrouter"
 	// Machine-translation vendors. They hold a credential here like any other
 	// vendor, but they are NOT text-generation models: they cannot back an AI
 	// system, and they are reached through the MT engine path, not this one.
@@ -30,8 +34,33 @@ const (
 // KnownProviders is the fixed set the AI tab manages, in display order.
 // Installed extensions are listed after them.
 var KnownProviders = []string{
-	ProviderOpenAI, ProviderClaude,
+	ProviderOpenAI, ProviderClaude, ProviderOpenRouter,
 	ProviderDeepL, ProviderGoogle,
+}
+
+// openRouterBaseURL is OpenRouter's API root. Its OpenAI-compatible surface
+// lives under /api/v1, and every caller appends its own /v1/... path.
+const openRouterBaseURL = "https://openrouter.ai/api"
+
+// SpeaksOpenAI reports whether provider p is driven through the OpenAI
+// chat/completions wire format. One predicate, so the request path, the model
+// list and the capability checks can't disagree about an OpenAI-compatible
+// vendor.
+func SpeaksOpenAI(p string) bool {
+	return p == ProviderOpenAI || p == ProviderOpenRouter
+}
+
+// defaultBaseURL is the public API root for an LLM provider when its
+// connection sets no endpoint of its own.
+func defaultBaseURL(provider string) string {
+	switch provider {
+	case ProviderOpenRouter:
+		return openRouterBaseURL
+	case ProviderClaude:
+		return "https://api.anthropic.com"
+	default:
+		return "https://api.openai.com"
+	}
 }
 
 // ValidProvider reports whether p is one of the known providers.
@@ -54,7 +83,7 @@ func ValidProvider(p string) bool {
 // reach the pipeline as MT engines instead, so they must stay false here or
 // they would appear in AI-engine model pickers with an empty model list.
 func CanMachineTranslate(p string) bool {
-	return p == ProviderOpenAI || p == ProviderClaude
+	return SpeaksOpenAI(p) || p == ProviderClaude
 }
 
 // IsMTEngineProvider reports whether p is a machine-translation vendor — one
@@ -69,7 +98,7 @@ func IsMTEngineProvider(p string) bool {
 // i.e. follow the {status, postedit, score} output contract. An extension
 // runs QE+APE through its own predict function, not this contract.
 func CanPredict(p string) bool {
-	return p == ProviderOpenAI || p == ProviderClaude
+	return SpeaksOpenAI(p) || p == ProviderClaude
 }
 
 // ConnectionTester verifies a provider API key by making a lightweight
@@ -95,6 +124,16 @@ func (t *httpTester) Test(ctx context.Context, provider, apiKey, baseURL string)
 			return t.testAzure(ctx, apiKey, base)
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/models", nil)
+		if err != nil {
+			return err
+		}
+		SetOpenAIAuth(req, apiKey, base)
+		return t.expectOK(req)
+	case ProviderOpenRouter:
+		// OpenRouter's /v1/models is public and answers 200 to ANY key, so it
+		// proves nothing. /v1/key describes the calling key and 401s a bad one.
+		base := orDefault(baseURL, openRouterBaseURL)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/key", nil)
 		if err != nil {
 			return err
 		}
@@ -400,6 +439,8 @@ func DisplayName(provider string) string {
 		return "OpenAI"
 	case ProviderClaude:
 		return "Claude"
+	case ProviderOpenRouter:
+		return "OpenRouter"
 	case ProviderDeepL:
 		return "DeepL"
 	case ProviderGoogle:
