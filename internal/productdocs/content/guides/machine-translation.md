@@ -54,7 +54,7 @@ The **MT** page in the left menu has three tabs: **Routers**, **Engines** and **
 
 | Kind | Examples | Where it is set up |
 | --- | --- | --- |
-| Provider engines | DeepL, Google Translate | **Engines** tab, from a key you add in **AI settings** |
+| Provider engines | DeepL, Google Translate, Apertera POD | **Engines** tab, from a key you add in **AI settings** |
 | LLM translation engines | A large language model from OpenAI or Claude, with a prompt | **LLM** on the **Engines** tab |
 
 A large language model (LLM) is an AI model that follows written instructions. As an MT engine it translates with a prompt you choose, which lets you shape tone and terminology.
@@ -66,7 +66,7 @@ Some deployments also supply built-in engines. Your organization gets them when 
 ## Add a provider key (owner or admin)
 
 1. Open the account menu at the top right and choose **AI settings**.
-2. In **Providers**, click the provider tile: **DeepL** or **Google Translate**.
+2. In **Providers**, click the provider tile: **DeepL**, **Google Translate** or **Apertera POD**.
 3. Leave **Custom endpoint** empty unless the provider gave you a special address.
 4. Under **Keys**, click **Add key**. Enter the **API key** the provider gave you, give the key a **Name**, and save. The key is stored encrypted and checked when you save it. A key that fails the check is not stored: the form shows why under the field, with what to do next. The tile counts the keys the provider holds.
 
@@ -81,7 +81,7 @@ You can remove a key at any time, and you do not have to change the engines firs
 1. On the **Engines** tab, click **New MT engine**.
 2. Give it a name.
 3. Pick the **Provider** and the **Key** it uses. The **Key** list offers only the keys you added for that provider, and tells you when there are none.
-4. Set the provider's options. DeepL offers **Formality**, **Glossary ID**, **Preserve formatting**, **Split sentences** and **Model**; Google Translate offers **Model**. An option you leave alone keeps the provider's own default.
+4. Set the provider's options. DeepL offers **Formality**, **Glossary ID**, **Preserve formatting**, **Split sentences** and **Model**; Google Translate offers **Model**; Apertera POD has no options. An option you leave alone keeps the provider's own default.
 5. Click **Create**.
 
 Each row shows the engine's name and the key it uses; click the row to change it. One key can back several engines that differ only in their options — one formal and one informal, say — and an MT router then sends each target language to the one it should use. Deleting an engine asks you to confirm; an engine an MT router routes to cannot be deleted until you change those routes.

@@ -238,7 +238,7 @@ func TestCatalogFollowsWhatTheDeploymentSupplies(t *testing.T) {
 	for _, c := range mtengine.Catalog() {
 		byType[c.EngineType] = c
 	}
-	for _, want := range []string{"deepl", "google", "libretranslate", "mock"} {
+	for _, want := range []string{"deepl", "google", "apertera-pod", "libretranslate", "mock"} {
 		if _, ok := byType[want]; !ok {
 			t.Errorf("%s missing from the catalog on a dev deployment that supplies it", want)
 		}
@@ -250,6 +250,11 @@ func TestCatalogFollowsWhatTheDeploymentSupplies(t *testing.T) {
 			t.Errorf("%s has no name to render", c.EngineType)
 		}
 		switch c.EngineType {
+		case "apertera-pod":
+			// Key-backed, but its API documents no request options to tune.
+			if !c.NeedsToken {
+				t.Errorf("%s is offered without a key — nothing would authenticate it", c.EngineType)
+			}
 		case "deepl", "google":
 			if !c.NeedsToken {
 				t.Errorf("%s is offered without a key — nothing would authenticate it", c.EngineType)

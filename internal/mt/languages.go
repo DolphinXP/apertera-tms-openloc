@@ -72,6 +72,8 @@ func staticLanguages(engineType string) Catalog {
 		return deeplLanguages()
 	case "google":
 		return googleLanguages()
+	case "apertera-pod":
+		return aperteraPodLanguages()
 	default:
 		return mockLanguages()
 	}
@@ -178,5 +180,25 @@ func googleLanguages() Catalog {
 	}
 	sort.Slice(codes, func(i, j int) bool { return codes[i].code < codes[j].code })
 
+	return languagePairCatalog(codes)
+}
+
+// aperteraPodLanguages is the catalog for the Apertera POD service, which
+// publishes no language list. It is the set this adapter can code-map; the
+// service itself may cover fewer pairs. Never used to refuse a pair.
+func aperteraPodLanguages() Catalog {
+	names := map[string]string{
+		"ar": "Arabic", "bg": "Bulgarian", "cs": "Czech", "da": "Danish", "de": "German",
+		"el": "Greek", "en": "English", "es": "Spanish", "fi": "Finnish", "fr": "French",
+		"he": "Hebrew", "hi": "Hindi", "hu": "Hungarian", "id": "Indonesian", "it": "Italian",
+		"ja": "Japanese", "ko": "Korean", "nb": "Norwegian", "nl": "Dutch", "pl": "Polish",
+		"pt": "Portuguese", "ro": "Romanian", "ru": "Russian", "sk": "Slovak", "sv": "Swedish",
+		"th": "Thai", "tr": "Turkish", "uk": "Ukrainian", "vi": "Vietnamese", "zh": "Chinese",
+	}
+	codes := make([]languageEntry, 0, len(names))
+	for code, name := range names {
+		codes = append(codes, languageEntry{code, name})
+	}
+	sort.Slice(codes, func(i, j int) bool { return codes[i].code < codes[j].code })
 	return languagePairCatalog(codes)
 }

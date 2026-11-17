@@ -39,6 +39,10 @@ const BASE_URL_HINT: Record<string, { placeholder: string; help: string }> = {
     placeholder: 'https://translation.googleapis.com',
     help: 'Leave blank for Google Cloud Translation. Set it to use a regional endpoint, a gateway or a proxy.',
   },
+  'apertera-pod': {
+    placeholder: 'https://ai.alexatranslations.com',
+    help: 'Leave blank for the Apertera POD service. Set it only for a different host, gateway or proxy.',
+  },
 }
 
 // The connection editor. ONE field — where the provider is reached — because that

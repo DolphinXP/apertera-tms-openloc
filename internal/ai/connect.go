@@ -29,13 +29,15 @@ const (
 	// system, and they are reached through the MT engine path, not this one.
 	ProviderDeepL  = "deepl"
 	ProviderGoogle = "google"
+	// ProviderAperteraPod is Apertera's custom MT service.
+	ProviderAperteraPod = "apertera-pod"
 )
 
 // KnownProviders is the fixed set the AI tab manages, in display order.
 // Installed extensions are listed after them.
 var KnownProviders = []string{
 	ProviderOpenAI, ProviderClaude, ProviderOpenRouter,
-	ProviderDeepL, ProviderGoogle,
+	ProviderDeepL, ProviderGoogle, ProviderAperteraPod,
 }
 
 // openRouterBaseURL is OpenRouter's API root. Its OpenAI-compatible surface
@@ -91,7 +93,7 @@ func CanMachineTranslate(p string) bool {
 // These vendors hold a credential here like any other, but
 // the translate pipeline reaches them through the MT engine that names the key.
 func IsMTEngineProvider(p string) bool {
-	return p == ProviderDeepL || p == ProviderGoogle
+	return p == ProviderDeepL || p == ProviderGoogle || p == ProviderAperteraPod
 }
 
 // CanPredict reports whether provider p can run LLM-backed QE+APE —
@@ -171,6 +173,20 @@ func (t *httpTester) Test(ctx context.Context, provider, apiKey, baseURL string)
 		}
 		req.Header.Set("X-Goog-Api-Key", apiKey)
 		return t.expectOK(req)
+	case ProviderAperteraPod:
+		// The service publishes no cheap authenticated read, so the probe is a
+		// one-word translation: a 2xx proves the key AND that the endpoint works.
+		base := AperteraPodBase(baseURL)
+		form := url.Values{
+			"credential": {apiKey}, "from": {"eng"}, "to": {"fra"}, "input": {"Hello"},
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+			base+"/v2/", strings.NewReader(form.Encode()))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return t.expectOK(req)
 	default:
 		return fmt.Errorf("unknown provider %q", provider)
 	}
@@ -194,6 +210,22 @@ func (t *httpTester) testAzure(ctx context.Context, apiKey, base string) error {
 	SetOpenAIAuth(req, apiKey, base)
 	req.Header.Set("Content-Type", "application/json")
 	return t.expectOK(req)
+}
+
+// AperteraPodDefaultURL is the Apertera POD service's public endpoint.
+const AperteraPodDefaultURL = "https://ai.alexatranslations.com"
+
+// AperteraPodBase normalizes a configured endpoint to the host root. The
+// request path (/v2/translate/) is added by the caller, so a URL pasted with
+// "/v2", "/v2/" or "/v2/translate/" on the end would otherwise double it.
+func AperteraPodBase(configured string) string {
+	base := strings.TrimRight(strings.TrimSpace(configured), "/")
+	base = strings.TrimSuffix(base, "/translate")
+	base = strings.TrimRight(strings.TrimSuffix(base, "/v2"), "/")
+	if base == "" {
+		return AperteraPodDefaultURL
+	}
+	return base
 }
 
 // deepLHost picks the API host a DeepL key belongs to. Free keys end in ":fx"
@@ -445,6 +477,8 @@ func DisplayName(provider string) string {
 		return "DeepL"
 	case ProviderGoogle:
 		return "Google Translate"
+	case ProviderAperteraPod:
+		return "Apertera POD"
 	default:
 		return provider
 	}

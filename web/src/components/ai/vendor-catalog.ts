@@ -47,6 +47,7 @@ export const VENDOR_CATALOG: CatalogVendor[] = [
 
   { id: 'deepl', name: 'DeepL', group: 'mt', wired: true },
   { id: 'google', name: 'Google Translate', group: 'mt', wired: true },
+  { id: 'apertera-pod', name: 'Apertera POD', group: 'mt', wired: true },
   { id: 'libretranslate', name: 'LibreTranslate', group: 'mt', wired: false, builtIn: true },
   { id: 'mock', name: 'Mock', group: 'mt', wired: false, builtIn: true },
 ]

@@ -127,7 +127,7 @@ type CatalogEntry struct {
 // built-ins deletable without that being a one-way door — you can add one back.
 func Catalog() []CatalogEntry {
 	out := []CatalogEntry{}
-	for _, t := range []string{EngineTypeDeepL, EngineTypeGoogle} {
+	for _, t := range []string{EngineTypeDeepL, EngineTypeGoogle, EngineTypeAperteraPod} {
 		out = append(out, CatalogEntry{
 			EngineType: t, Name: DisplayType(t), NeedsToken: NeedsToken(t), Params: ParamsFor(t),
 		})

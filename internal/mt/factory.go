@@ -1,6 +1,10 @@
 package mt
 
-import "fmt"
+import (
+	"fmt"
+
+	"openloc/internal/ai"
+)
 
 // CatalogEngine builds an engine from stored configuration for reading its
 // language catalog. Unlike NewFromDB it never fails on a missing key: an engine
@@ -29,6 +33,8 @@ func CatalogEngine(engineType, apiKey, apiURL string, settings map[string]any) E
 		return Google{APIKey: apiKey, BaseURL: apiURL, Options: GoogleOptions{
 			Model: settingStr(settings, "model"),
 		}}
+	case ai.ProviderAperteraPod:
+		return AperteraPod{APIKey: apiKey, BaseURL: apiURL}
 	case "libretranslate":
 		return LibreTranslate{APIURL: apiURL, APIKey: apiKey}
 	default:
@@ -49,6 +55,8 @@ func NewFromDB(engineType, apiKey, apiURL string, settings map[string]any) (Engi
 			return nil, fmt.Errorf("DeepL requires an API key")
 		case "google":
 			return nil, fmt.Errorf("Google Translate requires an API key")
+		case ai.ProviderAperteraPod:
+			return nil, fmt.Errorf("Apertera POD requires an API key")
 		}
 	}
 	return engine, nil
