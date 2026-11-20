@@ -166,7 +166,7 @@ test.describe("Surfaces stand apart from what is behind them", () => {
       // The signed-out pages render with the cached palette too. `signedout=1`
       // keeps dev auto-login away and leaves the stored token in place.
       await page.goto("/login?signedout=1");
-      const loginCard = page.getByRole("heading", { name: "OpenLoc", level: 1 }).locator("..");
+      const loginCard = page.getByRole("heading", { name: "AI Innovation - TMS", level: 1 }).locator("..");
       await expect(loginCard).toBeVisible();
       const loginShades = await backgroundAndBehind(loginCard);
       expect(loginShades.self, "login card vs page").not.toBe(loginShades.behind);
@@ -199,7 +199,7 @@ test.describe("Favicon follows the app theme", () => {
     await page.goto("/login?signedout=1");
     await page.evaluate(() => localStorage.setItem("openloc-theme", "light"));
     await page.reload();
-    await expect(page.getByRole("heading", { name: "OpenLoc", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "AI Innovation - TMS", level: 1 })).toBeVisible();
     await expect(favicon(page)).toHaveCount(1);
     await expect(favicon(page)).toHaveAttribute("href", /\/favicon\.svg$/);
 

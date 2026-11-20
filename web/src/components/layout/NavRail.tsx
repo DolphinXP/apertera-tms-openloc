@@ -12,7 +12,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { RoleSwitcher } from '../RoleSwitcher'
-import { Wordmark } from './Wordmark'
+import { AperteraLogo } from './AperteraLogo'
 import { isLinguistRole } from '../../lib/roles'
 
 // Vertical nav rows in the left rail: full-width rounded items with muted text
@@ -152,7 +152,7 @@ export function NavRail({ role, isPlatformAdmin, vendorOrg = false }: { role: st
               data-testid="nav-rail-wordmark"
               className="select-none"
             >
-              <Wordmark />
+              <AperteraLogo />
             </Link>
           )}
           <Tooltip>
