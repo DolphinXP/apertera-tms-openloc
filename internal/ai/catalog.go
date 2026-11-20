@@ -200,7 +200,9 @@ func HasModelList(provider string) bool {
 // hundred models across every vendor is an arbitrary slice, not "the current
 // ones", so the searchable picker gets all of them.
 func uncappedList(provider string) bool {
-	return provider == ProviderOpenRouter
+	// A self-hosted server lists the few models it was started with; all of
+	// them are wanted, whatever their age.
+	return provider == ProviderOpenRouter || provider == ProviderInHouse
 }
 
 // full returns the uncapped cached list, fetching on a miss.

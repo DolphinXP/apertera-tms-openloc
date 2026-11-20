@@ -118,6 +118,12 @@ func familyFromID(provider, id string) paramFamily {
 			return familyNone
 		}
 		return familyOpenRouter
+	case ProviderInHouse:
+		// Any id the server serves; the id says nothing about the model.
+		if base == "" {
+			return familyNone
+		}
+		return familyInHouse
 	}
 	return familyNone
 }

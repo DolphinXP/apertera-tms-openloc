@@ -314,7 +314,7 @@ func resolveModel(provider, model string) string {
 // provider and returns the model's text output.
 func (t *HTTPTranslator) complete(ctx context.Context, cc callConfig, system, user string) (string, error) {
 	switch cc.provider {
-	case ProviderOpenAI, ProviderOpenRouter:
+	case ProviderOpenAI, ProviderOpenRouter, ProviderInHouse:
 		return t.openAI(ctx, cc, system, user)
 	case ProviderClaude:
 		return t.claude(ctx, cc, system, user)

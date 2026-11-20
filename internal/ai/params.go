@@ -111,6 +111,9 @@ const (
 	// from any vendor, so only the parameters OpenRouter normalises across all
 	// of them are offered; it ignores the ones a given model does not take.
 	familyOpenRouter paramFamily = "openrouter"
+	// familyInHouse — any model on the self-hosted OpenAI-compatible server.
+	// Only the sampling parameters every such server takes are offered.
+	familyInHouse paramFamily = "inhouse"
 )
 
 // effortOptions are the thinking-depth levels, cheapest first.
@@ -181,6 +184,16 @@ var familyParams = map[paramFamily][]ParamDef{
 			Description: "Upper bound on tokens generated in the response. Leave unset for the model's own limit."},
 		{Key: ParamKeySeed, Label: "Seed", Type: ParamInteger, Min: f(0), Step: f(1),
 			Description: "Best-effort determinism, for models that support it."},
+	},
+	familyInHouse: {
+		{Key: ParamKeyTemperature, Label: "Temperature", Type: ParamNumber, Min: f(0), Max: f(2), Step: f(0.1),
+			Description: "Sampling randomness. 0 is focused/deterministic; higher (up to 2) is more varied. Defaults to 0 for translation work."},
+		{Key: ParamKeyTopP, Label: "Top P", Type: ParamNumber, Min: f(0), Max: f(1), Step: f(0.05),
+			Description: "Nucleus sampling. Prefer tuning either temperature or top_p, not both."},
+		{Key: ParamKeyMaxTokens, Label: "Max output tokens", Type: ParamInteger, Min: f(1), Max: f(128000), Step: f(1),
+			Description: "Upper bound on tokens generated in the response. Leave unset for the server's own limit."},
+		{Key: ParamKeySeed, Label: "Seed", Type: ParamInteger, Min: f(0), Step: f(1),
+			Description: "Best-effort determinism: the same seed + inputs tends to return the same output."},
 	},
 	familyOpenAIReasoning: {
 		{Key: ParamKeyReasoningEffort, Label: "Reasoning effort", Type: ParamEnum, Options: reasoningEffortOptions,

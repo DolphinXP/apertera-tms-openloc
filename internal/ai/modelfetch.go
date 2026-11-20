@@ -87,8 +87,8 @@ func (l *httpModelLister) List(ctx context.Context, provider, apiKey, baseURL st
 			return nil, err
 		}
 		SetOpenAIAuth(req, apiKey, base)
-	case ProviderOpenRouter:
-		base := orDefault(baseURL, openRouterBaseURL)
+	case ProviderOpenRouter, ProviderInHouse:
+		base := orDefault(baseURL, defaultBaseURL(provider))
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/models", nil)
 		if err != nil {
 			return nil, err

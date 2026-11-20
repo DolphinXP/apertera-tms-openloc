@@ -24,6 +24,10 @@ const (
 	// from many vendors, addressed as "<vendor>/<model>". It speaks the OpenAI
 	// chat/completions wire format, so it shares the OpenAI request path.
 	ProviderOpenRouter = "openrouter"
+	// In-House LLM is a self-hosted OpenAI-compatible server (vLLM or similar).
+	// Its model ids are whatever the server was started with, so nothing can
+	// be inferred from them; the tenant's own model list is the authority.
+	ProviderInHouse = "inhouse"
 	// Machine-translation vendors. They hold a credential here like any other
 	// vendor, but they are NOT text-generation models: they cannot back an AI
 	// system, and they are reached through the MT engine path, not this one.
@@ -36,7 +40,7 @@ const (
 // KnownProviders is the fixed set the AI tab manages, in display order.
 // Installed extensions are listed after them.
 var KnownProviders = []string{
-	ProviderOpenAI, ProviderClaude, ProviderOpenRouter,
+	ProviderOpenAI, ProviderClaude, ProviderOpenRouter, ProviderInHouse,
 	ProviderDeepL, ProviderGoogle, ProviderAperteraPod,
 }
 
@@ -44,12 +48,17 @@ var KnownProviders = []string{
 // lives under /api/v1, and every caller appends its own /v1/... path.
 const openRouterBaseURL = "https://openrouter.ai/api"
 
+// InHouseBaseURL is the default In-House LLM server. Like every other base URL
+// here it is the root WITHOUT /v1: callers append /v1/..., and a configured
+// ".../v1" is trimmed by NormalizeBaseURL on save.
+const InHouseBaseURL = "http://184.107.246.129:8000"
+
 // SpeaksOpenAI reports whether provider p is driven through the OpenAI
 // chat/completions wire format. One predicate, so the request path, the model
 // list and the capability checks can't disagree about an OpenAI-compatible
 // vendor.
 func SpeaksOpenAI(p string) bool {
-	return p == ProviderOpenAI || p == ProviderOpenRouter
+	return p == ProviderOpenAI || p == ProviderOpenRouter || p == ProviderInHouse
 }
 
 // defaultBaseURL is the public API root for an LLM provider when its
@@ -58,6 +67,8 @@ func defaultBaseURL(provider string) string {
 	switch provider {
 	case ProviderOpenRouter:
 		return openRouterBaseURL
+	case ProviderInHouse:
+		return InHouseBaseURL
 	case ProviderClaude:
 		return "https://api.anthropic.com"
 	default:
@@ -125,6 +136,16 @@ func (t *httpTester) Test(ctx context.Context, provider, apiKey, baseURL string)
 		if IsAzureEndpoint(base) {
 			return t.testAzure(ctx, apiKey, base)
 		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/models", nil)
+		if err != nil {
+			return err
+		}
+		SetOpenAIAuth(req, apiKey, base)
+		return t.expectOK(req)
+	case ProviderInHouse:
+		// vLLM-style servers started with --api-key 401 /v1/models on a bad
+		// key, so the model list doubles as the key check.
+		base := orDefault(baseURL, InHouseBaseURL)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/models", nil)
 		if err != nil {
 			return err
@@ -413,6 +434,13 @@ func NormalizeBaseURL(provider, raw string) string {
 // gateways. Internal addresses are refused at dial time (netguard.Client), not
 // here. Returns a client-safe message ("" = valid).
 func ValidateBaseURL(raw string) string {
+	return ValidateBaseURLFor("", raw)
+}
+
+// ValidateBaseURLFor is ValidateBaseURL with the provider known. The In-House
+// LLM runs on the company's own server without TLS, so plain http is accepted
+// for it; every other vendor still needs https.
+func ValidateBaseURLFor(provider, raw string) string {
 	if raw == "" {
 		return ""
 	}
@@ -423,7 +451,7 @@ func ValidateBaseURL(raw string) string {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return "Base URL must start with https://"
 	}
-	if u.Scheme == "http" && !(netguard.DevMode() && netguard.IsLocalhost(u.Hostname())) {
+	if u.Scheme == "http" && provider != ProviderInHouse && !(netguard.DevMode() && netguard.IsLocalhost(u.Hostname())) {
 		return "Base URL must use https:// (an API key sent over http can be intercepted)"
 	}
 	if u.RawQuery != "" || u.Fragment != "" {
@@ -473,6 +501,8 @@ func DisplayName(provider string) string {
 		return "Claude"
 	case ProviderOpenRouter:
 		return "OpenRouter"
+	case ProviderInHouse:
+		return "In-House LLM"
 	case ProviderDeepL:
 		return "DeepL"
 	case ProviderGoogle:

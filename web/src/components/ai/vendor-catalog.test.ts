@@ -43,13 +43,13 @@ describe('vendor catalog', () => {
 
   // Same rule on the other side: the QE+APE row only grows on purpose.
   it('offers exactly these QE+APE vendors', () => {
-    expect(vendorsIn('qe').map(v => v.id).sort()).toEqual(['claude', 'openai', 'openrouter'])
+    expect(vendorsIn('qe').map(v => v.id).sort()).toEqual(['claude', 'inhouse', 'openai', 'openrouter'])
   })
 
   // Only wired vendors open a credential form, so flipping one to wired is a
   // deliberate change that has to show up here.
   it('marks exactly these providers as wired', () => {
-    expect(wiredProviderIds().sort()).toEqual(['apertera-pod', 'claude', 'deepl', 'google', 'openai', 'openrouter'])
+    expect(wiredProviderIds().sort()).toEqual(['apertera-pod', 'claude', 'deepl', 'google', 'inhouse', 'openai', 'openrouter'])
   })
 
   // The invariant behind the whole catalog: a tile either accepts a credential

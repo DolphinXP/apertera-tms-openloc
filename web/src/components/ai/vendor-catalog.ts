@@ -44,6 +44,8 @@ export const VENDOR_CATALOG: CatalogVendor[] = [
   // OpenAI-compatible aggregator: one key, models from many vendors. Not a chat
   // provider (see `drivesChat`) — it backs AI engines only.
   { id: 'openrouter', name: 'OpenRouter', group: 'qe', wired: true },
+  // Self-hosted OpenAI-compatible server (vLLM). Backs AI engines AND chat.
+  { id: 'inhouse', name: 'In-House LLM', group: 'qe', wired: true },
 
   { id: 'deepl', name: 'DeepL', group: 'mt', wired: true },
   { id: 'google', name: 'Google Translate', group: 'mt', wired: true },
@@ -121,4 +123,5 @@ export const isBuiltIn = (provider: string) =>
  * reviews translations, and the MT providers translate rather than converse. A control
  * that cannot change anything is worse than no control.
  */
-export const drivesChat = (provider: string) => provider === 'claude' || provider === 'openai'
+export const drivesChat = (provider: string) =>
+  provider === 'claude' || provider === 'openai' || provider === 'inhouse'
