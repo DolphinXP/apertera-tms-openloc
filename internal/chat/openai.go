@@ -30,6 +30,9 @@ type openaiLLM struct {
 	client  *http.Client
 	// responses selects the Responses API; see usesResponsesAPI.
 	responses bool
+	// textTools turns tool calls a model wrote as text tags back into real
+	// calls and hides the tags (texttools.go). Self-hosted models only.
+	textTools bool
 }
 
 // NewOpenAI returns an LLM backed by OpenAI-compatible Chat Completions.
@@ -61,6 +64,14 @@ var llmClient = netguard.Client(0)
 const defaultOpenAIChatModel = "gpt-4o"
 
 const defaultOpenAIBaseURL = "https://api.openai.com"
+
+// NewInHouse returns the OpenAI-compatible adapter for the self-hosted
+// In-House LLM, with the text-tool fallback on.
+func NewInHouse(apiKey, baseURL, model string) LLM {
+	llm := NewOpenAI(apiKey, baseURL, model).(*openaiLLM)
+	llm.textTools = true
+	return llm
+}
 
 // --- wire types (only the fields we read) ---
 
@@ -95,6 +106,12 @@ type oaStreamChunk struct {
 func (o *openaiLLM) Stream(ctx context.Context, req Request, onDelta func(string)) (*Turn, error) {
 	if o.responses {
 		return o.streamResponses(ctx, req, onDelta)
+	}
+	var tagFilter *toolTagFilter
+	if o.textTools && len(req.Tools) > 0 {
+		req.System += textToolNudge
+		tagFilter = newToolTagFilter(req.Tools, onDelta)
+		onDelta = tagFilter.Write
 	}
 	payload := map[string]any{
 		"model":    o.model,
@@ -138,7 +155,18 @@ func (o *openaiLLM) Stream(ctx context.Context, req Request, onDelta func(string
 		_, _ = buf.ReadFrom(resp.Body)
 		return nil, classifyOpenAIErr(resp.StatusCode, buf.String())
 	}
-	return o.readStream(resp, onDelta)
+	turn, err := o.readStream(resp, onDelta)
+	if err != nil || tagFilter == nil {
+		return turn, err
+	}
+	tagFilter.Flush()
+	text, calls := extractTextToolCalls(turn.Text, req.Tools)
+	turn.Text = text
+	if len(calls) > 0 {
+		turn.ToolCalls = append(turn.ToolCalls, calls...)
+		turn.StopReason = StopToolUse
+	}
+	return turn, nil
 }
 
 // readStream consumes the SSE body, forwarding text deltas as they arrive and

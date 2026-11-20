@@ -76,7 +76,7 @@ func defaultLLMFactory(provider, apiKey, baseURL, model string) LLM {
 		if baseURL == "" {
 			baseURL = ai.InHouseBaseURL
 		}
-		return NewOpenAI(apiKey, baseURL, model)
+		return NewInHouse(apiKey, baseURL, model)
 	default:
 		return NewAnthropic(apiKey, baseURL, model)
 	}
