@@ -1,0 +1,107 @@
+# Dev override for the self-hosted stack: hot reload instead of image rebuilds.
+#
+#   cd deploy
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# postgres / redis / seaweedfs / parser and their volumes are the SAME as the
+# base stack (same project name "deploy"), so data is kept. Only app changes:
+#   app - Go source bind-mounted; air rebuilds and restarts on .go/.sql changes
+#         and runs pending migrations on each rebuild. Backend on :8081.
+#   web - Vite dev server with HMR on :8080 (APP_PORT). It shares the network
+#         namespace of app, so its proxy to localhost:8081 reaches the backend.
+#
+# Back to the image-based stack:
+#   docker compose -f docker-compose.dev.yml -f docker-compose.yml down web
+#   docker compose -f docker-compose.yml up -d --build
+
+x-dev-user: &dev-user "1000:1000"
+
+services:
+  dev-init:
+    # Named volumes are created root-owned; hand them to uid 1000 so the dev
+    # containers run as the host user and leave no root-owned files behind.
+    image: public.ecr.aws/docker/library/alpine:3.21.8@sha256:ce64758a109eb420d874a118f87920e625e12d3634e03b4a5573fd9f6e5d3507
+    command: ["sh", "-c", "chown 1000:1000 /go /cache /node_modules"]
+    volumes:
+      - dev-gopath:/go
+      - dev-gocache:/cache
+      - dev-node-modules:/node_modules
+    restart: "no"
+
+  app:
+    image: public.ecr.aws/docker/library/golang:1.26.9-alpine@sha256:cdfd4fe2da6b225d8b40c6b7a105736e548e83ff56d5d8f9394446eeb5eb84e0
+    build: !reset null
+    user: *dev-user
+    working_dir: /src
+    environment:
+      PORT: "8081"
+      STATIC_DIR: ""
+      HOME: /tmp
+      GOPATH: /go
+      GOCACHE: /cache
+      GOFLAGS: -buildvcs=false
+      CGO_ENABLED: "0"
+    command:
+      - sh
+      - -c
+      - |
+        [ -x /go/bin/air ] || go install github.com/air-verse/air@v1.62.0
+        exec /go/bin/air -c deploy/air.dev.toml
+    volumes:
+      - ..:/src
+      - dev-gopath:/go
+      - dev-gocache:/cache
+      - dev-node-modules:/src/web/node_modules
+    ports: !override
+      # Vite (web service, same network namespace) answers here.
+      - "${APP_PORT:-8080}:8080"
+    depends_on: !override
+      dev-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      parser:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/health/complete"]
+      start_period: 300s
+    stop_grace_period: 10s
+
+  web:
+    image: public.ecr.aws/docker/library/node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
+    user: *dev-user
+    network_mode: "service:app"
+    working_dir: /src/web
+    environment:
+      FRONTEND_PORT: "8080"
+      BACKEND_PORT: "8081"
+      HOME: /tmp
+      # Vite rejects unknown Host headers; allow the public domain in front of
+      # this box (comma-separated). Avoids editing web/vite.config.ts.
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${DEV_ALLOWED_HOSTS:-ai-innovation-tms.at-ai.systems}
+    command:
+      - sh
+      - -c
+      - |
+        [ node_modules/.package-lock.json -nt package-lock.json ] || npm ci --no-audit --no-fund
+        exec npx vite --host 0.0.0.0
+    volumes:
+      - ..:/src
+      - dev-node-modules:/src/web/node_modules
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
+
+  # The base migrate service runs the old image; air migrates on each rebuild.
+  migrate:
+    profiles: ["image-only"]
+
+volumes:
+  dev-gopath:
+  dev-gocache:
+  dev-node-modules:
