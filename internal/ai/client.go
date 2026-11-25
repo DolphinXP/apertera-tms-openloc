@@ -314,7 +314,7 @@ func resolveModel(provider, model string) string {
 // provider and returns the model's text output.
 func (t *HTTPTranslator) complete(ctx context.Context, cc callConfig, system, user string) (string, error) {
 	switch cc.provider {
-	case ProviderOpenAI:
+	case ProviderOpenAI, ProviderOpenRouter, ProviderInHouse:
 		return t.openAI(ctx, cc, system, user)
 	case ProviderClaude:
 		return t.claude(ctx, cc, system, user)
@@ -375,8 +375,8 @@ func translateFormats(cfg TranslateConfig) promptFormats {
 }
 
 func (t *HTTPTranslator) openAI(ctx context.Context, cc callConfig, system, user string) (string, error) {
-	base := orDefault(cc.baseURL, "https://api.openai.com")
-	model := resolveModel(ProviderOpenAI, cc.model)
+	base := orDefault(cc.baseURL, defaultBaseURL(cc.provider))
+	model := resolveModel(cc.provider, cc.model)
 	payload := map[string]any{
 		"model": model,
 		"messages": []map[string]string{
@@ -386,7 +386,7 @@ func (t *HTTPTranslator) openAI(ctx context.Context, cc callConfig, system, user
 	}
 	// Sets temperature: 0 by default, then overlays the provider config's
 	// settings.
-	cc.settings.applyOpenAI(payload, model)
+	cc.settings.applyOpenAI(payload, cc.provider, model)
 	if schema := cc.outputSchema(model); schema != nil {
 		payload["response_format"] = openAISchemaFormat(schema)
 	}

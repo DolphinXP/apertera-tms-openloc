@@ -128,7 +128,8 @@ const aiSuggestTimeout = 10 * time.Second
 
 func (h *Handler) aiSuggestion(r *http.Request, dashboardName string, existing []existingChart, wantShared bool) string {
 	model := h.defaultModel(r.Context(), auth.TenantIDFromContext(r.Context()))
-	apiKey, baseURL, err := h.vendorKey(r, providerForModel(model))
+	provider := h.resolveProvider(r.Context(), auth.TenantIDFromContext(r.Context()), model)
+	apiKey, baseURL, err := h.vendorKey(r, provider)
 	if err != nil {
 		return "" // no key connected → tier 2 (greyed hint)
 	}
@@ -185,7 +186,7 @@ func (h *Handler) aiSuggestion(r *http.Request, dashboardName string, existing [
 		}
 	}
 
-	llm := h.newLLM(providerForModel(model), apiKey, baseURL, model)
+	llm := h.newLLM(provider, apiKey, baseURL, model)
 	turn, err := llm.Stream(ctx, Request{
 		System:    sys,
 		Messages:  []Message{{Role: "user", Text: user}},

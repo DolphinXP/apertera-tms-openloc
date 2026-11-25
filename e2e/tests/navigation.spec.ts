@@ -60,7 +60,7 @@ test.describe("Main Navigation", () => {
       await expect(rail).toHaveAttribute("data-collapsed", "true");
       await settle();
       await expect(wordmark).toHaveCount(0);
-      await expect(rail.getByRole("img", { name: "OpenLoc" })).toHaveCount(0);
+      await expect(rail.getByRole("img", { name: "Apertera" })).toHaveCount(0);
       await expect(toggle).toHaveAccessibleName("Expand navigation");
       expect((await box(rail)).width).toBeLessThan(expandedWidth / 2);
       // The expand icon matches the nav icons: same size, same column.

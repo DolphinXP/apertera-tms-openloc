@@ -102,7 +102,7 @@ func (h *Handler) HandleCreateConnection(w http.ResponseWriter, r *http.Request)
 		name = h.displayName(r, provider)
 	}
 	baseURL := NormalizeBaseURL(provider, req.BaseURL)
-	if msg := ValidateBaseURL(baseURL); msg != "" {
+	if msg := ValidateBaseURLFor(provider, baseURL); msg != "" {
 		httputil.BadRequest(w, msg)
 		return
 	}
@@ -165,7 +165,7 @@ func (h *Handler) HandleUpdateConnection(w http.ResponseWriter, r *http.Request)
 	if req.BaseURL != nil {
 		baseURL = NormalizeBaseURL(provider, *req.BaseURL)
 	}
-	if msg := ValidateBaseURL(baseURL); msg != "" {
+	if msg := ValidateBaseURLFor(provider, baseURL); msg != "" {
 		httputil.BadRequest(w, msg)
 		return
 	}

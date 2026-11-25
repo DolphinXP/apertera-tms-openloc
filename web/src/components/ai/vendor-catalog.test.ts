@@ -38,18 +38,18 @@ describe('vendor catalog', () => {
   // entry to the MT row fails here, so the list only grows on purpose. This
   // pins the frontend list; it does not read the backend's.
   it('offers exactly these MT engines', () => {
-    expect(vendorsIn('mt').map(v => v.id).sort()).toEqual(['deepl', 'google', 'libretranslate', 'mock'])
+    expect(vendorsIn('mt').map(v => v.id).sort()).toEqual(['apertera-pod', 'deepl', 'google', 'libretranslate', 'mock'])
   })
 
   // Same rule on the other side: the QE+APE row only grows on purpose.
   it('offers exactly these QE+APE vendors', () => {
-    expect(vendorsIn('qe').map(v => v.id).sort()).toEqual(['claude', 'openai'])
+    expect(vendorsIn('qe').map(v => v.id).sort()).toEqual(['claude', 'inhouse', 'openai', 'openrouter'])
   })
 
   // Only wired vendors open a credential form, so flipping one to wired is a
   // deliberate change that has to show up here.
   it('marks exactly these providers as wired', () => {
-    expect(wiredProviderIds().sort()).toEqual(['claude', 'deepl', 'google', 'openai'])
+    expect(wiredProviderIds().sort()).toEqual(['apertera-pod', 'claude', 'deepl', 'google', 'inhouse', 'openai', 'openrouter'])
   })
 
   // The invariant behind the whole catalog: a tile either accepts a credential

@@ -39,7 +39,7 @@ func Create(ctx context.Context, q db.Querier, tenantID int64, in CreateInput) (
 		return db.MtEngine{}, httputil.NewClientError("name and engine_type are required")
 	}
 	if !ValidType(engineType) {
-		return db.MtEngine{}, httputil.NewClientError("engine_type must be one of: mock, libretranslate, deepl, google")
+		return db.MtEngine{}, httputil.NewClientError("engine_type must be one of: mock, libretranslate, deepl, google, apertera-pod")
 	}
 	var apiURL *string
 	if !NeedsToken(engineType) {
@@ -124,7 +124,7 @@ func PrepareUpdate(ctx context.Context, q db.Querier, tenantID, id int64, in Upd
 	engineType := current.EngineType
 	if in.EngineType != nil {
 		if !ValidType(*in.EngineType) {
-			return fail("engine_type must be one of: mock, libretranslate, deepl, google")
+			return fail("engine_type must be one of: mock, libretranslate, deepl, google, apertera-pod")
 		}
 		engineType = *in.EngineType
 	}

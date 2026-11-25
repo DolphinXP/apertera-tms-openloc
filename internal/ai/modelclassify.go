@@ -2,6 +2,7 @@ package ai
 
 import (
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -110,6 +111,19 @@ func familyFromID(provider, id string) paramFamily {
 			return familyClaudeBudget
 		}
 		return familyClaudeEffort
+	case ProviderOpenRouter:
+		// Ids are "<vendor>/<model>", and the vendor can be anyone, so the id
+		// says nothing about which knobs apply; OpenRouter normalises them.
+		if base == "" {
+			return familyNone
+		}
+		return familyOpenRouter
+	case ProviderInHouse:
+		// Any id the server serves; the id says nothing about the model.
+		if base == "" {
+			return familyNone
+		}
+		return familyInHouse
 	}
 	return familyNone
 }
@@ -167,6 +181,11 @@ func classifyRemote(provider string, m RemoteModel) (Model, bool) {
 	}
 	base := strings.ToLower(baseModelID(id))
 	if provider == ProviderOpenAI && containsAny(base, openAIDenyMarkers) {
+		return Model{}, false
+	}
+	// OpenRouter declares what each model outputs. Image and audio generators
+	// sit in the same list and can't answer a chat/completions text request.
+	if provider == ProviderOpenRouter && len(m.OutputModalities) > 0 && !slices.Contains(m.OutputModalities, "text") {
 		return Model{}, false
 	}
 	family := familyFromID(provider, id)

@@ -619,3 +619,42 @@ func TestChatLayerToolsReachTheProvider(t *testing.T) {
 		}
 	}
 }
+
+// Reply buttons end the answer: a step whose only call is suggest_replies does
+// not send the model around again, where a weaker model repeats its answer.
+func TestRunStopsAfterReplyButtons(t *testing.T) {
+	llm := &fakeLLM{
+		deltas: []string{"Hello!"},
+		turns: []*Turn{
+			{Text: "Hello!", StopReason: StopToolUse, ToolCalls: []ToolCall{{ID: "r", Name: repliesToolName, Args: json.RawMessage(`{"replies":["Tour"]}`)}}},
+			{Text: "Hello!", StopReason: "end_turn"},
+		},
+	}
+	var live streamed
+	res, err := Run(context.Background(), llm, newFakeSession(), SystemPrompt{Stable: "sys"}, nil, RunOptions{}, live.on)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if len(llm.requests) != 1 {
+		t.Fatalf("model called %d times, want 1", len(llm.requests))
+	}
+	if res.Text != "Hello!" || len(live.replies) != 1 {
+		t.Fatalf("text = %q, replies = %v", res.Text, live.replies)
+	}
+}
+
+// Invalid replies go back to the model to fix, like any refused tool call.
+func TestRunContinuesAfterRefusedReplyButtons(t *testing.T) {
+	llm := &fakeLLM{
+		turns: []*Turn{
+			{StopReason: StopToolUse, ToolCalls: []ToolCall{{ID: "r", Name: repliesToolName, Args: json.RawMessage(`{"replies":[]}`)}}},
+			{Text: "Pick one.", StopReason: "end_turn"},
+		},
+	}
+	if _, err := Run(context.Background(), llm, newFakeSession(), SystemPrompt{Stable: "sys"}, nil, RunOptions{}, func(Event) {}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if len(llm.requests) != 2 {
+		t.Fatalf("model called %d times, want 2", len(llm.requests))
+	}
+}

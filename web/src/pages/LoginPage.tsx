@@ -99,7 +99,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="bg-card rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-8 w-full max-w-sm">
-        <h1 className="mb-1"><Wordmark size="large" /></h1>
+        <h1 className="mb-1"><Wordmark size="large">AI Innovation - TMS</Wordmark></h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Sign in to your account</p>
 
         {serverError && (

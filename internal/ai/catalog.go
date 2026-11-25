@@ -153,7 +153,7 @@ func (c *Catalog) Models(ctx context.Context, tenantID int64, provider string) [
 		if m.deprecated {
 			continue
 		}
-		if len(out) == c.limit {
+		if len(out) == c.limit && !uncappedList(provider) {
 			break
 		}
 		m.Params = ParamsFor(provider, m.ID)
@@ -192,7 +192,17 @@ func (c *Catalog) Valid(ctx context.Context, tenantID int64, provider, modelID s
 // Extensions have no models, and the MT vendors are reached as engines, not
 // as an LLM with a chosen model.
 func HasModelList(provider string) bool {
-	return provider == ProviderOpenAI || provider == ProviderClaude
+	return SpeaksOpenAI(provider) || provider == ProviderClaude
+}
+
+// uncappedList reports whether a vendor's picker shows its whole list rather
+// than the newest few. OpenRouter is an aggregator: the newest N of several
+// hundred models across every vendor is an arbitrary slice, not "the current
+// ones", so the searchable picker gets all of them.
+func uncappedList(provider string) bool {
+	// A self-hosted server lists the few models it was started with; all of
+	// them are wanted, whatever their age.
+	return provider == ProviderOpenRouter || provider == ProviderInHouse
 }
 
 // full returns the uncapped cached list, fetching on a miss.

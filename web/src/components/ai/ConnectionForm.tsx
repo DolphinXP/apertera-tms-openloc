@@ -25,6 +25,14 @@ const BASE_URL_HINT: Record<string, { placeholder: string; help: string }> = {
     placeholder: 'https://api.anthropic.com',
     help: 'Leave blank for Anthropic. Set it to use an Anthropic-compatible endpoint, such as a gateway or proxy.',
   },
+  inhouse: {
+    placeholder: 'http://184.107.246.129:8000/v1',
+    help: 'Leave blank for the company In-House LLM server. Set it to reach another OpenAI-compatible server (vLLM or similar); plain http is allowed here.',
+  },
+  openrouter: {
+    placeholder: 'https://openrouter.ai/api',
+    help: 'Leave blank for OpenRouter. Set it only for a gateway or proxy in front of OpenRouter.',
+  },
   deepl: {
     placeholder: 'https://api.deepl.com',
     // The Free/Pro host is derived from the key (Free keys end in ":fx"), so it
@@ -34,6 +42,10 @@ const BASE_URL_HINT: Record<string, { placeholder: string; help: string }> = {
   google: {
     placeholder: 'https://translation.googleapis.com',
     help: 'Leave blank for Google Cloud Translation. Set it to use a regional endpoint, a gateway or a proxy.',
+  },
+  'apertera-pod': {
+    placeholder: 'https://ai.alexatranslations.com',
+    help: 'Leave blank for the Apertera POD service. Set it only for a different host, gateway or proxy.',
   },
 }
 

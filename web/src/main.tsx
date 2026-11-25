@@ -6,7 +6,6 @@ import { AttentionProvider } from './hooks/useAttention'
 import { ThemeProvider } from 'next-themes'
 import './index.css'
 import App from './App'
-import { ThemeFavicon } from './components/ThemeFavicon'
 import { Toaster } from '@/components/ui/sonner'
 import { ActionTrailRecorder } from '@/components/issues/ActionTrailRecorder'
 import { applyCachedPalette } from './lib/palettes'
@@ -76,7 +75,6 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider attribute="class" defaultTheme="system" storageKey="openloc-theme">
-      <ThemeFavicon />
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AttentionProvider>

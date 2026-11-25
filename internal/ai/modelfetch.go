@@ -26,6 +26,9 @@ type RemoteModel struct {
 	DisplayName string
 	Created     time.Time
 	Lifecycle   string
+	// OutputModalities is what the model produces ("text", "image", …), where
+	// the vendor says so (OpenRouter). Empty means unknown.
+	OutputModalities []string
 }
 
 // LifecycleDeprecated is the one lifecycle_status that means the model is at or
@@ -84,6 +87,13 @@ func (l *httpModelLister) List(ctx context.Context, provider, apiKey, baseURL st
 			return nil, err
 		}
 		SetOpenAIAuth(req, apiKey, base)
+	case ProviderOpenRouter, ProviderInHouse:
+		base := orDefault(baseURL, defaultBaseURL(provider))
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/models", nil)
+		if err != nil {
+			return nil, err
+		}
+		SetOpenAIAuth(req, apiKey, base)
 	case ProviderClaude:
 		base := orDefault(baseURL, "https://api.anthropic.com")
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet,
@@ -127,6 +137,11 @@ type modelListResponse struct {
 		Created     int64           `json:"created"`
 		CreatedAt   json.RawMessage `json:"created_at"`
 		Lifecycle   string          `json:"lifecycle_status"`
+		// OpenRouter: a human name and what the model outputs.
+		Name         string `json:"name"`
+		Architecture struct {
+			OutputModalities []string `json:"output_modalities"`
+		} `json:"architecture"`
 	} `json:"data"`
 }
 
@@ -161,7 +176,12 @@ func parseModelList(provider string, body []byte) ([]RemoteModel, error) {
 	}
 	out := make([]RemoteModel, 0, len(resp.Data))
 	for _, row := range resp.Data {
-		m := RemoteModel{ID: row.ID, DisplayName: row.DisplayName, Lifecycle: row.Lifecycle}
+		display := row.DisplayName
+		if display == "" {
+			display = row.Name
+		}
+		m := RemoteModel{ID: row.ID, DisplayName: display, Lifecycle: row.Lifecycle,
+			OutputModalities: row.Architecture.OutputModalities}
 		if row.Created > 0 {
 			m.Created = time.Unix(row.Created, 0).UTC()
 		} else {

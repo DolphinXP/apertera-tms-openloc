@@ -262,6 +262,10 @@ func Run(ctx context.Context, llm LLM, session toolSession, system SystemPrompt,
 		msgs = append(msgs, Message{Role: "assistant", Text: turn.Text, ToolCalls: turn.ToolCalls})
 		results := make([]ToolResult, 0, len(turn.ToolCalls))
 		paused := false
+		// Reply buttons close an answer ("call it once, at the end"): a step
+		// whose only calls are accepted suggest_replies leaves the user to act
+		// next. Going around again only invites the model to repeat itself.
+		onlyReplies := true
 		for _, tc := range turn.ToolCalls {
 			onEvent(Event{Type: "tool_start", Tool: tc.Name})
 			var content string
@@ -301,13 +305,16 @@ func Run(ctx context.Context, llm LLM, session toolSession, system SystemPrompt,
 					slog.String("chat.tool", tc.Name))
 			}
 			onEvent(Event{Type: "tool_end", Tool: tc.Name, OK: !isErr})
+			if tc.Name != repliesToolName || isErr {
+				onlyReplies = false
+			}
 			res.ToolCalls = append(res.ToolCalls, ToolCallSummary{Name: tc.Name, OK: !isErr})
 			results = append(results, ToolResult{ID: tc.ID, Content: content, IsError: isErr})
 		}
 		msgs = append(msgs, Message{Role: "user", ToolResults: results})
 		// The user acts next: the browser shows the button, and the outcome
 		// comes back as their next message.
-		if paused {
+		if paused || onlyReplies {
 			return res, nil
 		}
 	}

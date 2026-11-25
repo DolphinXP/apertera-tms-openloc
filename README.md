@@ -19,7 +19,7 @@ OpenLoc is a TMS for localization teams that work with AI. It holds your project
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS
 - **File storage:** S3-compatible (SeaweedFS for dev)
 - **Background jobs:** asynq (Redis-based)
-- **MT engines:** Pluggable — DeepL, Google Translate, LibreTranslate
+- **MT engines:** Pluggable — DeepL, Google Translate, Apertera POD, LibreTranslate
 - **Quality:** AI quality checks and post-editing through your own prompts
 - **Document parsing:** Python sidecar (FastAPI) for DOCX/PDF — all other formats parsed natively in Go
 

@@ -9,10 +9,10 @@ const SIZES = {
  * The OpenLoc wordmark in the brand display face. Renders only the text;
  * the caller wraps it in the link or heading the spot needs.
  */
-export function Wordmark({ size = 'default', className }: { size?: keyof typeof SIZES; className?: string }) {
+export function Wordmark({ size = 'default', className, children = 'OpenLoc' }: { size?: keyof typeof SIZES; className?: string; children?: React.ReactNode }) {
   return (
     <span className={cn('font-display font-medium tracking-[-0.01em] text-gray-900 dark:text-gray-100', SIZES[size], className)}>
-      OpenLoc
+      {children}
     </span>
   )
 }

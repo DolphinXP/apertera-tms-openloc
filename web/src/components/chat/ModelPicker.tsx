@@ -61,7 +61,7 @@ export function ProviderLogo({ provider, className, muted }: { provider: string;
     <svg
       viewBox="0 0 24 24"
       className={cn(!muted && provider === 'openai' && 'text-black dark:text-white', className)}
-      style={!muted && provider !== 'openai' ? { color: CLAUDE_HEX } : undefined}
+      style={!muted && provider !== 'openai' ? { color: providerMark(provider)?.hex ?? CLAUDE_HEX } : undefined}
       aria-hidden
       fill="currentColor"
     >

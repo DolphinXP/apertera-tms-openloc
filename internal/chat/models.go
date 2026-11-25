@@ -12,7 +12,7 @@ import (
 
 // chatProviders are the providers whose models the picker lists, in display
 // order. Extensions are deliberately absent — they run QE+APE, not chat.
-var chatProviders = []string{ai.ProviderClaude, ai.ProviderOpenAI}
+var chatProviders = []string{ai.ProviderClaude, ai.ProviderOpenAI, ai.ProviderInHouse}
 
 // adapterFor reports whether the chat runtime can actually DRIVE provider p.
 // Claude + OpenAI today; a provider listed here must have an adapter wired in
@@ -20,7 +20,7 @@ var chatProviders = []string{ai.ProviderClaude, ai.ProviderOpenAI}
 // when the org holds its key, greyed and unselectable — the picker, validation
 // and endpoint all key off this one function.
 func adapterFor(p string) bool {
-	return p == ai.ProviderClaude || p == ai.ProviderOpenAI
+	return p == ai.ProviderClaude || p == ai.ProviderOpenAI || p == ai.ProviderInHouse
 }
 
 // providerForModel maps a model id back to its vendor. Derived from the id
@@ -34,6 +34,31 @@ func providerForModel(model string) string {
 	return ai.ProviderClaude
 }
 
+// resolveProvider maps a model id to the vendor that serves it FOR THIS
+// TENANT. The In-House LLM's ids are arbitrary (a self-hosted "gpt-oss-120b"
+// looks like OpenAI's), so the id shape alone can't tell; the tenant's model
+// lists decide. Order: the vendor the id's shape names, when the tenant holds
+// its key and its list has the id; else the In-House LLM, when its list has
+// the id; else the shape-based answer, as before.
+func (h *Handler) resolveProvider(ctx context.Context, tenantID int64, model string) string {
+	byShape := ai.ProviderForModelID(model)
+	connected, err := h.connectedProviders(ctx, tenantID)
+	if err != nil {
+		return providerForModel(model)
+	}
+	if byShape != "" && connected[byShape] && h.catalog.Valid(ctx, tenantID, byShape, model) {
+		return byShape
+	}
+	if connected[ai.ProviderInHouse] {
+		for _, m := range h.catalog.Models(ctx, tenantID, ai.ProviderInHouse) {
+			if m.ID == model {
+				return ai.ProviderInHouse
+			}
+		}
+	}
+	return providerForModel(model)
+}
+
 // providerLabel is the vendor name as it appears in the UI, for error copy.
 func providerLabel(p string) string {
 	switch p {
@@ -41,6 +66,8 @@ func providerLabel(p string) string {
 		return "OpenAI"
 	case ai.ProviderClaude:
 		return "Claude"
+	case ai.ProviderInHouse:
+		return "In-House LLM"
 	case "":
 		// Unreachable via either adapter (both set Provider) — a guard so a
 		// stray ProviderError can't render "Your  API key was rejected".
@@ -128,7 +155,7 @@ func (h *Handler) validateModel(ctx context.Context, tenantID int64, requested s
 	if requested == "" {
 		return h.defaultModel(ctx, tenantID), true
 	}
-	p := ai.ProviderForModelID(requested)
+	p := h.resolveProvider(ctx, tenantID, requested)
 	if p == "" || !adapterFor(p) {
 		return "", false
 	}

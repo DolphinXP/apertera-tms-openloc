@@ -71,6 +71,12 @@ func defaultLLMFactory(provider, apiKey, baseURL, model string) LLM {
 	switch provider {
 	case ai.ProviderOpenAI:
 		return NewOpenAI(apiKey, baseURL, model)
+	case ai.ProviderInHouse:
+		// OpenAI-compatible Chat Completions on the company's own server.
+		if baseURL == "" {
+			baseURL = ai.InHouseBaseURL
+		}
+		return NewInHouse(apiKey, baseURL, model)
 	default:
 		return NewAnthropic(apiKey, baseURL, model)
 	}
@@ -142,7 +148,7 @@ func (h *Handler) HandleSend(w http.ResponseWriter, r *http.Request) {
 	// The tenant's own key for the SELECTED model's vendor. Missing
 	// key is a setup problem, not an error — 412 with a stable code the FE maps
 	// to a settings link.
-	provider := providerForModel(model)
+	provider := h.resolveProvider(ctx, claims.TenantID, model)
 	apiKey, baseURL, err := h.vendorKey(r, provider)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

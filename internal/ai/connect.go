@@ -20,18 +20,60 @@ import (
 const (
 	ProviderOpenAI = "openai"
 	ProviderClaude = "claude"
+	// OpenRouter is an OpenAI-compatible aggregator: one key reaches models
+	// from many vendors, addressed as "<vendor>/<model>". It speaks the OpenAI
+	// chat/completions wire format, so it shares the OpenAI request path.
+	ProviderOpenRouter = "openrouter"
+	// In-House LLM is a self-hosted OpenAI-compatible server (vLLM or similar).
+	// Its model ids are whatever the server was started with, so nothing can
+	// be inferred from them; the tenant's own model list is the authority.
+	ProviderInHouse = "inhouse"
 	// Machine-translation vendors. They hold a credential here like any other
 	// vendor, but they are NOT text-generation models: they cannot back an AI
 	// system, and they are reached through the MT engine path, not this one.
 	ProviderDeepL  = "deepl"
 	ProviderGoogle = "google"
+	// ProviderAperteraPod is Apertera's custom MT service.
+	ProviderAperteraPod = "apertera-pod"
 )
 
 // KnownProviders is the fixed set the AI tab manages, in display order.
 // Installed extensions are listed after them.
 var KnownProviders = []string{
-	ProviderOpenAI, ProviderClaude,
-	ProviderDeepL, ProviderGoogle,
+	ProviderOpenAI, ProviderClaude, ProviderOpenRouter, ProviderInHouse,
+	ProviderDeepL, ProviderGoogle, ProviderAperteraPod,
+}
+
+// openRouterBaseURL is OpenRouter's API root. Its OpenAI-compatible surface
+// lives under /api/v1, and every caller appends its own /v1/... path.
+const openRouterBaseURL = "https://openrouter.ai/api"
+
+// InHouseBaseURL is the default In-House LLM server. Like every other base URL
+// here it is the root WITHOUT /v1: callers append /v1/..., and a configured
+// ".../v1" is trimmed by NormalizeBaseURL on save.
+const InHouseBaseURL = "http://184.107.246.129:8000"
+
+// SpeaksOpenAI reports whether provider p is driven through the OpenAI
+// chat/completions wire format. One predicate, so the request path, the model
+// list and the capability checks can't disagree about an OpenAI-compatible
+// vendor.
+func SpeaksOpenAI(p string) bool {
+	return p == ProviderOpenAI || p == ProviderOpenRouter || p == ProviderInHouse
+}
+
+// defaultBaseURL is the public API root for an LLM provider when its
+// connection sets no endpoint of its own.
+func defaultBaseURL(provider string) string {
+	switch provider {
+	case ProviderOpenRouter:
+		return openRouterBaseURL
+	case ProviderInHouse:
+		return InHouseBaseURL
+	case ProviderClaude:
+		return "https://api.anthropic.com"
+	default:
+		return "https://api.openai.com"
+	}
 }
 
 // ValidProvider reports whether p is one of the known providers.
@@ -54,7 +96,7 @@ func ValidProvider(p string) bool {
 // reach the pipeline as MT engines instead, so they must stay false here or
 // they would appear in AI-engine model pickers with an empty model list.
 func CanMachineTranslate(p string) bool {
-	return p == ProviderOpenAI || p == ProviderClaude
+	return SpeaksOpenAI(p) || p == ProviderClaude
 }
 
 // IsMTEngineProvider reports whether p is a machine-translation vendor — one
@@ -62,14 +104,14 @@ func CanMachineTranslate(p string) bool {
 // These vendors hold a credential here like any other, but
 // the translate pipeline reaches them through the MT engine that names the key.
 func IsMTEngineProvider(p string) bool {
-	return p == ProviderDeepL || p == ProviderGoogle
+	return p == ProviderDeepL || p == ProviderGoogle || p == ProviderAperteraPod
 }
 
 // CanPredict reports whether provider p can run LLM-backed QE+APE —
 // i.e. follow the {status, postedit, score} output contract. An extension
 // runs QE+APE through its own predict function, not this contract.
 func CanPredict(p string) bool {
-	return p == ProviderOpenAI || p == ProviderClaude
+	return SpeaksOpenAI(p) || p == ProviderClaude
 }
 
 // ConnectionTester verifies a provider API key by making a lightweight
@@ -95,6 +137,26 @@ func (t *httpTester) Test(ctx context.Context, provider, apiKey, baseURL string)
 			return t.testAzure(ctx, apiKey, base)
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/models", nil)
+		if err != nil {
+			return err
+		}
+		SetOpenAIAuth(req, apiKey, base)
+		return t.expectOK(req)
+	case ProviderInHouse:
+		// vLLM-style servers started with --api-key 401 /v1/models on a bad
+		// key, so the model list doubles as the key check.
+		base := orDefault(baseURL, InHouseBaseURL)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/models", nil)
+		if err != nil {
+			return err
+		}
+		SetOpenAIAuth(req, apiKey, base)
+		return t.expectOK(req)
+	case ProviderOpenRouter:
+		// OpenRouter's /v1/models is public and answers 200 to ANY key, so it
+		// proves nothing. /v1/key describes the calling key and 401s a bad one.
+		base := orDefault(baseURL, openRouterBaseURL)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/key", nil)
 		if err != nil {
 			return err
 		}
@@ -132,6 +194,20 @@ func (t *httpTester) Test(ctx context.Context, provider, apiKey, baseURL string)
 		}
 		req.Header.Set("X-Goog-Api-Key", apiKey)
 		return t.expectOK(req)
+	case ProviderAperteraPod:
+		// The service publishes no cheap authenticated read, so the probe is a
+		// one-word translation: a 2xx proves the key AND that the endpoint works.
+		base := AperteraPodBase(baseURL)
+		form := url.Values{
+			"credential": {apiKey}, "from": {"eng"}, "to": {"fra"}, "input": {"Hello"},
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+			base+"/v2/", strings.NewReader(form.Encode()))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return t.expectOK(req)
 	default:
 		return fmt.Errorf("unknown provider %q", provider)
 	}
@@ -155,6 +231,22 @@ func (t *httpTester) testAzure(ctx context.Context, apiKey, base string) error {
 	SetOpenAIAuth(req, apiKey, base)
 	req.Header.Set("Content-Type", "application/json")
 	return t.expectOK(req)
+}
+
+// AperteraPodDefaultURL is the Apertera POD service's public endpoint.
+const AperteraPodDefaultURL = "https://ai.alexatranslations.com"
+
+// AperteraPodBase normalizes a configured endpoint to the host root. The
+// request path (/v2/translate/) is added by the caller, so a URL pasted with
+// "/v2", "/v2/" or "/v2/translate/" on the end would otherwise double it.
+func AperteraPodBase(configured string) string {
+	base := strings.TrimRight(strings.TrimSpace(configured), "/")
+	base = strings.TrimSuffix(base, "/translate")
+	base = strings.TrimRight(strings.TrimSuffix(base, "/v2"), "/")
+	if base == "" {
+		return AperteraPodDefaultURL
+	}
+	return base
 }
 
 // deepLHost picks the API host a DeepL key belongs to. Free keys end in ":fx"
@@ -342,6 +434,13 @@ func NormalizeBaseURL(provider, raw string) string {
 // gateways. Internal addresses are refused at dial time (netguard.Client), not
 // here. Returns a client-safe message ("" = valid).
 func ValidateBaseURL(raw string) string {
+	return ValidateBaseURLFor("", raw)
+}
+
+// ValidateBaseURLFor is ValidateBaseURL with the provider known. The In-House
+// LLM runs on the company's own server without TLS, so plain http is accepted
+// for it; every other vendor still needs https.
+func ValidateBaseURLFor(provider, raw string) string {
 	if raw == "" {
 		return ""
 	}
@@ -352,7 +451,7 @@ func ValidateBaseURL(raw string) string {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return "Base URL must start with https://"
 	}
-	if u.Scheme == "http" && !(netguard.DevMode() && netguard.IsLocalhost(u.Hostname())) {
+	if u.Scheme == "http" && provider != ProviderInHouse && !(netguard.DevMode() && netguard.IsLocalhost(u.Hostname())) {
 		return "Base URL must use https:// (an API key sent over http can be intercepted)"
 	}
 	if u.RawQuery != "" || u.Fragment != "" {
@@ -400,10 +499,16 @@ func DisplayName(provider string) string {
 		return "OpenAI"
 	case ProviderClaude:
 		return "Claude"
+	case ProviderOpenRouter:
+		return "OpenRouter"
+	case ProviderInHouse:
+		return "In-House LLM"
 	case ProviderDeepL:
 		return "DeepL"
 	case ProviderGoogle:
 		return "Google Translate"
+	case ProviderAperteraPod:
+		return "Apertera POD"
 	default:
 		return provider
 	}

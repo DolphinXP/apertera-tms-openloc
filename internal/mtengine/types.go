@@ -8,6 +8,7 @@ const (
 	EngineTypeLibreTranslate = "libretranslate"
 	EngineTypeDeepL          = "deepl"
 	EngineTypeGoogle         = "google"
+	EngineTypeAperteraPod    = "apertera-pod"
 )
 
 // displayType is the type as users see it, for error copy.
@@ -16,6 +17,7 @@ var displayType = map[string]string{
 	EngineTypeLibreTranslate: "LibreTranslate",
 	EngineTypeDeepL:          "DeepL",
 	EngineTypeGoogle:         "Google Translate",
+	EngineTypeAperteraPod:    "Apertera POD",
 }
 
 // DisplayType names an engine type in the user's vocabulary, falling back to
@@ -38,5 +40,5 @@ func ValidType(engineType string) bool {
 // endpoint and credential, which is exactly why they must never offer a key
 // field (LibreTranslate's standing rule).
 func NeedsToken(engineType string) bool {
-	return engineType == EngineTypeDeepL || engineType == EngineTypeGoogle
+	return engineType == EngineTypeDeepL || engineType == EngineTypeGoogle || engineType == EngineTypeAperteraPod
 }

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-const APP_TITLE = 'OpenLoc'
+const APP_TITLE = 'AI-Innovation TMS'
 
 function cleanParts(parts: (string | null | undefined)[]): string[] {
   return parts.map((p) => p?.trim() ?? '').filter(Boolean)

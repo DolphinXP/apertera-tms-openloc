@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { NavRail, navItemsForRole } from './NavRail'
@@ -98,19 +98,18 @@ describe('NavRail', () => {
 
   it('links the wordmark to the home page', () => {
     renderRail(EDITOR_PATH)
-    expect(screen.getByRole('link', { name: 'OpenLoc' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Apertera' })).toHaveAttribute('href', '/')
   })
 
   it('keeps the wordmark and the toggle in one row, and shows only the toggle when collapsed', async () => {
     renderRail('/projects')
     const toggle = screen.getByTestId('nav-rail-toggle')
     const wordmark = screen.getByTestId('nav-rail-wordmark')
-    expect(wordmark).toHaveTextContent('OpenLoc')
+    expect(within(wordmark).getByRole('img', { name: 'Apertera' })).toBeInTheDocument()
     expect(toggle.parentElement).toBe(wordmark.parentElement)
 
     await userEvent.click(toggle)
-    expect(screen.queryByText('OpenLoc')).toBeNull()
-    expect(screen.queryByRole('img', { name: 'OpenLoc' })).toBeNull()
+    expect(screen.queryByRole('img', { name: 'Apertera' })).toBeNull()
     // The brand row now holds the expand control and nothing else.
     expect(screen.getByTestId('nav-rail-toggle').parentElement!.children).toHaveLength(1)
   })

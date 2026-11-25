@@ -11,7 +11,7 @@ import { request } from './request';
 // deepl/google hold a credential like any other provider but are NOT
 // text-generation models — they have no model catalog and cannot back an AI
 // engine.
-export type BuiltInProviderId = 'openai' | 'claude' | 'deepl' | 'google';
+export type BuiltInProviderId = 'openai' | 'claude' | 'openrouter' | 'inhouse' | 'deepl' | 'google' | 'apertera-pod';
 export type ExtensionProviderId = `ext:${string}`;
 export type AIProviderId = BuiltInProviderId | ExtensionProviderId;
 

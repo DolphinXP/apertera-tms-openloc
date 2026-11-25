@@ -1,0 +1,23 @@
+# air config for the dev override (docker-compose.dev.yml). Runs inside the
+# app container with the repo bind-mounted at /src.
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # Migrate on every rebuild so a new migration file is applied without a
+  # separate step; a no-op when nothing is pending.
+  cmd = "go build -o ./tmp/server ./cmd/server && ./tmp/server migrate"
+  bin = "./tmp/server"
+  delay = 500
+  exclude_dir = ["tmp", "bin", "web", "node_modules", "vendor", "e2e", "test-results", "docs", "deploy", "sidecars", ".git"]
+  exclude_regex = ["_test\\.go$"]
+  # md + png: the help pages under internal/productdocs/content are go:embed'ed.
+  include_ext = ["go", "sql", "yaml", "md", "png", "svg"]
+  send_interrupt = true
+  kill_delay = "3s"
+
+[log]
+  time = true
+
+[misc]
+  clean_on_exit = false

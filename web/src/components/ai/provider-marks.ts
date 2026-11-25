@@ -34,6 +34,11 @@ export const PROVIDER_MARKS: Record<string, ProviderMark> = {
   // dark card, which is exactly what a fixed colour would give us.
   openai: { path: OPENAI_PATH, badgeClass: 'bg-black text-white dark:bg-white dark:text-black' },
   claude: { path: siClaude.path, hex: `#${siClaude.hex}` },
+  // The Apertera "A" (src/assets/apertera-logo.svg), rescaled to 24x24.
+  inhouse: {
+    path: 'M14.549 1.875H6.912L8.181 4.596L0 22.125H7.667L4.498 15.339L8.847 6.021L16.365 22.125H24L14.549 1.875Z',
+    hex: '#0D7E89',
+  },
   deepl: { path: siDeepl.path, hex: `#${siDeepl.hex}` },
   // Google Cloud Translation is the product we call, and Translate is the mark
   // people know it by — the plain Google "G" would name the company, not this.
