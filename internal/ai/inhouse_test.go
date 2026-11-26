@@ -36,8 +36,8 @@ func TestInHouseIsAnOpenAICompatibleLLM(t *testing.T) {
 // The endpoint is given as ".../v1"; callers append /v1/..., so the saved
 // base must not keep it.
 func TestInHouseBaseURLDropsV1(t *testing.T) {
-	for _, in := range []string{"http://184.107.246.129:8000/v1", "http://184.107.246.129:8000/v1/", " http://184.107.246.129:8000 "} {
-		if got := NormalizeBaseURL(ProviderInHouse, in); got != "http://184.107.246.129:8000" {
+	for _, in := range []string{"https://beta.slm.at-ai.systems/v1", "https://beta.slm.at-ai.systems/v1/", " https://beta.slm.at-ai.systems "} {
+		if got := NormalizeBaseURL(ProviderInHouse, in); got != "https://beta.slm.at-ai.systems" {
 			t.Errorf("NormalizeBaseURL(%q) = %q", in, got)
 		}
 	}

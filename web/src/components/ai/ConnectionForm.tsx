@@ -26,7 +26,7 @@ const BASE_URL_HINT: Record<string, { placeholder: string; help: string }> = {
     help: 'Leave blank for Anthropic. Set it to use an Anthropic-compatible endpoint, such as a gateway or proxy.',
   },
   inhouse: {
-    placeholder: 'http://184.107.246.129:8000/v1',
+    placeholder: 'https://beta.slm.at-ai.systems/v1',
     help: 'Leave blank for the company In-House LLM server. Set it to reach another OpenAI-compatible server (vLLM or similar); plain http is allowed here.',
   },
   openrouter: {

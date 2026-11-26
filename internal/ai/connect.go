@@ -51,7 +51,7 @@ const openRouterBaseURL = "https://openrouter.ai/api"
 // InHouseBaseURL is the default In-House LLM server. Like every other base URL
 // here it is the root WITHOUT /v1: callers append /v1/..., and a configured
 // ".../v1" is trimmed by NormalizeBaseURL on save.
-const InHouseBaseURL = "http://184.107.246.129:8000"
+const InHouseBaseURL = "https://beta.slm.at-ai.systems"
 
 // SpeaksOpenAI reports whether provider p is driven through the OpenAI
 // chat/completions wire format. One predicate, so the request path, the model
